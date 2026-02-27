@@ -1,0 +1,40 @@
+# docker-compose.yml — Controlador PID de Presión
+#
+# IMPORTANTE: Se usa network_mode: host para que el contenedor tenga
+# acceso directo a la interfaz de red del host y pueda comunicarse
+# con el PLC en 192.168.185.6 sin NAT ni port-forwarding.
+
+services:
+
+  # ── Controlador PID conectado al PLC real ──────────────
+  controlador:
+    build: .
+    image: controlador-presion:latest
+    container_name: controlador-presion
+    # network_mode: host expone la red del host al contenedor.
+    # Esto es NECESARIO para que pylogix alcance el PLC
+    # a través de la interfaz Ethernet física del PC.
+    network_mode: host
+    volumes:
+      - ./data:/app/data             # Persistir logs CSV y gráficos
+    environment:
+      - MPLBACKEND=Agg               # matplotlib sin ventana
+      - PYTHONUNBUFFERED=1            # Logs en tiempo real
+    restart: "no"
+    # Por defecto ejecuta: python main.py
+    # Para simulación:  docker compose run controlador python test_simulation.py --fast
+
+  # ── Test de simulación offline (sin PLC) ───────────────
+  simulacion:
+    build: .
+    image: controlador-presion:latest
+    container_name: simulacion-presion
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MPLBACKEND=Agg
+      - PYTHONUNBUFFERED=1
+    # No necesita host network (no accede al PLC)
+    command: ["test_simulation.py", "--fast"]
+    profiles:
+      - test                          # Solo se ejecuta con: docker compose --profile test run simulacion

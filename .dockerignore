@@ -1,0 +1,28 @@
+# Entorno virtual y caches
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Git
+.git/
+.gitignore
+
+# Archivos de desarrollo (no necesarios en producción)
+Dev_notebooks/
+testeo_controlador.md
+uv.lock
+.python-version
+
+# Datos de salida previos (se montan como volumen)
+data/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
