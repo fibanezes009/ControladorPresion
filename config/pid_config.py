@@ -13,7 +13,8 @@ TS = SAMPLE_TIME_SEC / 3600     # Periodo de muestreo [h]
 K     = 0.6086      # Ganancia estática      [psi/%]
 TAU   = 0.0995      # Constante de tiempo    [h]
 THETA = 0.0200      # Tiempo muerto          [h]
-D     = 7           # Retraso discreto       [muestras]  = round(THETA / TS)
+# Retraso discreto: d = round(THETA / TS) = 7 muestras
+# (calculado automáticamente en SimulatedPlantInterface)
 
 # ── Sintonización PID (criterio IAE – seguimiento de SP) ─
 KC = 4.9574         # Ganancia proporcional  [%/psi]

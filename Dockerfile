@@ -26,6 +26,7 @@ COPY src/ src/
 COPY utils/ utils/
 COPY main.py .
 COPY test_simulation.py .
+COPY test_real_safe.py .
 
 # Crear carpeta de salida de datos
 RUN mkdir -p data

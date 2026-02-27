@@ -7,4 +7,19 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
+
+# Datos de salida (logs, gráficos, estado PID)
+data/
+
+# IDE y editor
+.vscode/
+*.swp
+*.swo
+
+# Administradores de paquetes
+uv.lock
+.python-version
+
+# Docker (no rastrear datos de build)
+*.tar

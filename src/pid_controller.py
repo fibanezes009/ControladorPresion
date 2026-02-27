@@ -7,8 +7,13 @@ Controlador PID discreto incremental con:
 Parámetros cargados desde config/pid_config.py.
 """
 
+import json
+import os
+
 import numpy as np
 from config.pid_config import KC, TI, TD, TS, OP_MIN, OP_MAX, MAX_DELTA_OP
+
+STATE_FILE = "data/pid_state.json"
 
 
 class PIDController:
@@ -86,6 +91,43 @@ class PIDController:
         self._op_prev = op
 
         return op
+
+    # ──────────────────────────────────────────────────
+    def save_state(self, path: str = STATE_FILE) -> None:
+        """Persiste las variables del pasado a disco (JSON)."""
+        state = {
+            "e_prev": self._e_prev,
+            "pv_prev1": self._pv_prev1,
+            "pv_prev2": self._pv_prev2,
+            "op_prev": self._op_prev,
+            "k": self._k,
+        }
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+
+    # ──────────────────────────────────────────────────
+    def load_state(self, path: str = STATE_FILE) -> bool:
+        """Restaura las variables del pasado desde disco.
+
+        Retorna True si se restauró exitosamente, False si no había archivo."""
+        if not os.path.exists(path):
+            print("[PID] Sin estado previo. Iniciando desde cero.")
+            return False
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            self._e_prev   = float(state.get("e_prev", 0.0))
+            self._pv_prev1 = float(state.get("pv_prev1", 0.0))
+            self._pv_prev2 = float(state.get("pv_prev2", 0.0))
+            self._op_prev  = float(state.get("op_prev", 0.0))
+            self._k        = int(state.get("k", 0))
+            print(f"[PID] Estado restaurado: OP={self._op_prev:.2f}%, "
+                  f"PV_prev={self._pv_prev1:.2f}, paso={self._k}")
+            return True
+        except Exception as e:
+            print(f"[PID] Error al restaurar estado: {e}. Iniciando desde cero.")
+            return False
 
     # ──────────────────────────────────────────────────
     def reset(self) -> None:

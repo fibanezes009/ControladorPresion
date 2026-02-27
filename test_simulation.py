@@ -126,6 +126,7 @@ def main():
         sample_time_sec=SAMPLE_TIME_SEC,
         logger=logger,
         real_time=not fast_mode,
+        persist_state=False,        # Simulación: no persistir estado a disco
     )
 
     # 6. Resultados

@@ -39,7 +39,7 @@ class RealPLCInterface(PlantInterface):
         from pylogix import PLC
         self._comm = PLC()
         self._comm.IPAddress = ip
-        # self._comm.ProcessorSlot = slot
+        self._comm.ProcessorSlot = slot
         self._pressure_tag = pressure_tag
         self._valve_tag = valve_tag
 
@@ -52,9 +52,22 @@ class RealPLCInterface(PlantInterface):
         )
 
     def write_valve(self, value: float) -> None:
-        self._comm.Write(self._valve_tag, float(value))
+        result = self._comm.Write(self._valve_tag, float(value))
+        if getattr(result, "Status", None) != "Success":
+            raise RuntimeError(
+                f"Error de escritura PLC en '{self._valve_tag}': {getattr(result, 'Status', 'Unknown')}"
+            )
+
+    def shutdown_valve(self) -> None:
+        """Cierra la válvula a 0 % como medida de seguridad."""
+        try:
+            self._comm.Write(self._valve_tag, 0.0)
+            print("[SEGURIDAD] Válvula cerrada a 0 %.")
+        except Exception as e:
+            print(f"[SEGURIDAD] ⚠ No se pudo cerrar la válvula: {e}")
 
     def close(self) -> None:
+        self.shutdown_valve()
         self._comm.Close()
 
 

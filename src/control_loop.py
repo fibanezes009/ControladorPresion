@@ -5,10 +5,16 @@ Orquesta la lectura de presión, cómputo PID y escritura de válvula,
 independientemente de si la planta es real (PLC) o simulada.
 """
 
+import math
 import time
 from src.pid_controller import PIDController
 from src.plant_interface import PlantInterface
 from utils.data_logger import DataLogger
+
+# ── Validación de mediciones ──────────────────────────────
+PV_MIN = -5.0     # Presión mínima plausible [psi]
+PV_MAX = 50.0     # Presión máxima plausible [psi]
+MAX_READ_RETRIES = 3   # Reintentos ante fallo de lectura
 
 
 def run_control_loop(
@@ -19,6 +25,7 @@ def run_control_loop(
     logger: DataLogger,
     real_time: bool = True,
     verbose: bool = True,
+    persist_state: bool = True,
 ) -> DataLogger:
     """Ejecuta el lazo PID cerrado.
 
@@ -38,6 +45,10 @@ def run_control_loop(
     """
     controller = PIDController()
 
+    # Restaurar estado previo si existe (robustez ante reinicios)
+    if persist_state:
+        controller.load_state()
+
     try:
         for k in range(n_steps):
             time_h = k * sample_time_sec / 3600.0
@@ -45,19 +56,43 @@ def run_control_loop(
             # 1. Obtener set-point
             sp = setpoint_fn(k, time_h)
 
-            # 2. Leer presión
-            pv = plant.read_pressure()
+            # 2. Leer presión (con reintentos)
+            pv = None
+            for attempt in range(1, MAX_READ_RETRIES + 1):
+                try:
+                    pv = plant.read_pressure()
+                    break
+                except RuntimeError as e:
+                    if verbose:
+                        print(f"\n[WARN] Lectura fallida (intento {attempt}/{MAX_READ_RETRIES}): {e}")
+                    if attempt == MAX_READ_RETRIES:
+                        print("\n[ERROR] Lecturas agotadas. Deteniendo lazo.")
+                        raise
+                    time.sleep(1)
 
-            # 3. Calcular acción de control
+            # 3. Validar medición de presión
+            if pv is None or math.isnan(pv) or not (PV_MIN <= pv <= PV_MAX):
+                print(f"\n[WARN] PV fuera de rango ({pv}). Manteniendo salida anterior.")
+                continue
+
+            # 4. Calcular acción de control
             op = controller.compute(sp, pv)
 
-            # 4. Escribir apertura de válvula
-            plant.write_valve(op)
+            # 5. Escribir apertura de válvula
+            try:
+                plant.write_valve(op)
+            except RuntimeError as e:
+                if verbose:
+                    print(f"\n[WARN] Escritura fallida: {e}")
 
-            # 5. Registrar datos
+            # 6. Persistir estado del controlador
+            if persist_state:
+                controller.save_state()
+
+            # 7. Registrar datos
             logger.log(time_h, sp, pv, op)
 
-            # 6. Progreso en consola
+            # 8. Progreso en consola
             if verbose:
                 print(
                     f"  [{k + 1:>4}/{n_steps}]  "
@@ -65,12 +100,14 @@ def run_control_loop(
                     end="\r",
                 )
 
-            # 7. Esperar periodo de muestreo
+            # 9. Esperar periodo de muestreo
             if real_time:
                 time.sleep(sample_time_sec)
 
     except KeyboardInterrupt:
         print("\n[INFO] Lazo de control detenido por el usuario (Ctrl+C).")
+    except RuntimeError as e:
+        print(f"\n[ERROR] Error crítico de comunicación: {e}")
 
     finally:
         if verbose:
