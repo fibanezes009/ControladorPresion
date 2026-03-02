@@ -23,3 +23,6 @@ uv.lock
 
 # Docker (no rastrear datos de build)
 *.tar
+Acceso_Remoto.pdf
+Docker_Images.txt
+

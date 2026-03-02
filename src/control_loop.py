@@ -94,10 +94,14 @@ def run_control_loop(
 
             # 8. Progreso en consola
             if verbose:
+                rl_flag = " RL" if controller.last_rate_limited else "   "
+                lim = controller.last_effective_limit
                 print(
                     f"  [{k + 1:>4}/{n_steps}]  "
-                    f"t={time_h:.4f} h  |  SP={sp:6.2f}  PV={pv:6.2f}  OP={op:6.2f}%",
-                    end="\r",
+                    f"t={time_h:.4f} h  |  SP={sp:6.2f}  PV={pv:6.2f}  "
+                    f"OP={op:6.2f}%  dOP={controller.last_delta_applied:+6.2f}"
+                    f"({controller.last_delta_raw:+7.2f})"
+                    f"  lim={lim:4.2f}{rl_flag}"
                 )
 
             # 9. Esperar periodo de muestreo

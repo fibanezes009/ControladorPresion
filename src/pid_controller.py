@@ -11,7 +11,8 @@ import json
 import os
 
 import numpy as np
-from config.pid_config import KC, TI, TD, TS, OP_MIN, OP_MAX, MAX_DELTA_OP
+from config.pid_config import (KC, TI, TD, TS, OP_MIN, OP_MAX,
+                                MAX_DELTA_OP, ERROR_BAND, MIN_RL_FRAC)
 
 STATE_FILE = "data/pid_state.json"
 
@@ -28,6 +29,8 @@ class PIDController:
         op_min: float = OP_MIN,
         op_max: float = OP_MAX,
         max_delta_op: float = MAX_DELTA_OP,
+        error_band: float = ERROR_BAND,
+        min_rl_frac: float = MIN_RL_FRAC,
     ):
         self.Kc = Kc
         self.Ti = Ti
@@ -36,6 +39,8 @@ class PIDController:
         self.op_min = op_min
         self.op_max = op_max
         self.max_delta_op = max_delta_op
+        self.error_band = error_band
+        self.min_rl_frac = min_rl_frac
 
         # ── Estado interno ─────────────────────────────
         self._e_prev: float = 0.0       # error anterior  e[k-1]
@@ -43,6 +48,12 @@ class PIDController:
         self._pv_prev2: float = 0.0     # PV hace 2 pasos pv[k-2]
         self._op_prev: float = 0.0      # salida anterior op[k-1]
         self._k: int = 0                # contador de pasos
+
+        # ── Diagnóstico (último cálculo) ───────────────
+        self.last_delta_raw: float = 0.0      # delta PID sin recortar
+        self.last_delta_applied: float = 0.0  # delta tras rate limiter
+        self.last_rate_limited: bool = False   # True si fue recortado
+        self.last_effective_limit: float = max_delta_op  # límite efectivo usado
 
     # ──────────────────────────────────────────────────
     def compute(self, sp: float, pv: float) -> float:
@@ -76,10 +87,20 @@ class PIDController:
             delta_D = 0.0
 
         # ── Incremento total ──
-        delta_op = delta_P + delta_I + delta_D
+        delta_raw = delta_P + delta_I + delta_D
 
-        # ── Rate limiter ──
-        delta_op = float(np.clip(delta_op, -self.max_delta_op, self.max_delta_op))
+        # ── Rate limiter dinámico ──
+        # Cerca del SP el límite se reduce proporcionalmente al error
+        alpha = min(1.0, abs(e) / self.error_band) if self.error_band > 0 else 1.0
+        alpha = max(alpha, self.min_rl_frac)  # piso mínimo
+        effective_limit = self.max_delta_op * alpha
+        delta_op = float(np.clip(delta_raw, -effective_limit, effective_limit))
+
+        # ── Diagnóstico ──
+        self.last_delta_raw = float(delta_raw)
+        self.last_delta_applied = delta_op
+        self.last_rate_limited = (abs(delta_raw) > effective_limit)
+        self.last_effective_limit = effective_limit
 
         # ── Salida saturada ──
         op = float(np.clip(self._op_prev + delta_op, self.op_min, self.op_max))
