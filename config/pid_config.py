@@ -24,14 +24,26 @@ TD = 0.0073         # Tiempo derivativo      [h]
 # ── Restricciones del actuador ────────────────────────────
 OP_MIN       = 0.0      # Cierre total      [%]
 OP_MAX       = 100.0    # Apertura total    [%]
-MAX_DELTA_OP = 5.0      # Máx. cambio por muestra (rate limiter) [%]
 
-# ── Rate limiter dinámico ─────────────────────────────────
-# Cuando |error| < ERROR_BAND, el rate limit se reduce proporcionalmente:
-#   effective_limit = MAX_DELTA_OP × max(|error|/ERROR_BAND, MIN_RL_FRAC)
-# Ejemplo: error=0.5 psi → limit = 5 × max(0.5/2, 0.1) = 1.25%
-ERROR_BAND   = 2.0      # Banda de error para escalado [psi]
-MIN_RL_FRAC  = 0.10     # Fracción mínima del rate limiter (10%)
+# ── Rate limiter (dos zonas) ──────────────────────────────
+# Cuando |error| >= ERROR_BAND  →  clip a ±MAX_DELTA_OP  (10 %)
+#   Evita movimientos violentos de la válvula lejos del SP.
+# Cuando |error| <  ERROR_BAND  →  PID libre, sin restricción.
+#   Evita ciclos límite inducidos por recorte repetitivo cerca del SP.
+MAX_DELTA_OP = 10.0     # Máx. cambio por muestra [%] (lejos de SP)
+ERROR_BAND   = 5.0      # Umbral [psi]: RL activo si |error| >= este valor
+
+# ── Anti-windup (back-calculation) ────────────────────────
+# Constante de tiempo de tracking: controla qué tan rápido el anti-windup
+# corrige la acumulación integral cuando el RL o la saturación recortan.
+# Valor típico: Tt = Ti (moderado) o Tt = sqrt(Ti·Td) (agresivo).
+TRACKING_TC  = TI       # Constante de tracking [h]  (Tt = Ti)
+
+# ── Filtro derivativo ─────────────────────────────────────
+# Coeficiente N del filtro de primer orden en el término derivativo.
+# Limita la ganancia de alta frecuencia a Kc·N.
+# Valores típicos: 5-20 (estándar industrial: 10).
+DERIV_FILTER_N = 10     # Coeficiente del filtro derivativo
 
 # ── Simulación ────────────────────────────────────────────
 SIMULATION_DURATION_H = 2.0     # Duración de la simulación de prueba [h]
