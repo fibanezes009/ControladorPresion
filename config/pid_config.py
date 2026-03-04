@@ -26,7 +26,11 @@ THETA = 0.0200      # Tiempo muerto          [h]
 
 KC = 4.0786         # Ganancia proporcional  [%/psi]
 TI = 0.0488         # Tiempo integral        [h]
-TD = 0.0072         # Tiempo derivativo      [h]
+# TD = 0.0072       # Tiempo derivativo original [h] (desactivado:
+#                    # el derivativo amplifica ruido de PV y crea
+#                    # oscilaciones con la planta real, que responde
+#                    # más rápido que el modelo FOPDT).
+TD = 0.0            # PI puro — sin acción derivativa
 
 # ── Restricciones del actuador ────────────────────────────
 OP_MIN       = 0.0      # Cierre total      [%]

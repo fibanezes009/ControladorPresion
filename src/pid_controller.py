@@ -128,14 +128,15 @@ class PIDController:
         self.last_effective_limit = self.max_delta_op if limit < float('inf') else 999.0
 
         # ── Salida saturada ──
-        op = float(np.clip(self._op_prev + delta_op, self.op_min, self.op_max))
+        op_before_sat = self._op_prev + delta_op   # después de RL, antes de clip
+        op = float(np.clip(op_before_sat, self.op_min, self.op_max))
 
-        # ── Anti-windup: error de saturación para el siguiente paso ──
-        # sat_error = (lo que se aplicó) - (lo que se quería)
-        # Negativo cuando se recortó en dirección positiva;
-        # Positivo cuando se recortó en dirección negativa.
-        actual_delta = op - self._op_prev
-        self._sat_error = actual_delta - delta_raw
+        # ── Anti-windup: SOLO de saturación del actuador (0-100 %) ──
+        # NO incluye el recorte del RL.  El RL limita la TASA de
+        # cambio, no la capacidad. La integral no debe ser penalizada
+        # por el RL — de lo contrario el anti-windup revierte la
+        # acumulación integral y crea ciclos límite.
+        self._sat_error = op - op_before_sat
 
         # ── Actualizar historia ──
         self._e_prev = e
