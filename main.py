@@ -18,14 +18,14 @@ from utils.data_logger import DataLogger
 
 # ── Perfil de set-point (mismo que en AjusteFT_PID.ipynb) ──
 def setpoint_fn(step: int, time_h: float) -> float:
-    if time_h < 0.5:
-        return 20.0
-    elif time_h < 1.0:
-        return 25.0
-    elif time_h < 1.5:
-        return 17.0
-    else:
+    if time_h < 0.3:
         return 15.0
+    elif time_h < 0.6:
+        return 17.0
+    elif time_h < 0.9:
+        return 19.0
+    else:
+        return 20.0
 
 
 def main():

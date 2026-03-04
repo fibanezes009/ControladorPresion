@@ -10,16 +10,23 @@ SAMPLE_TIME_SEC = 10            # Periodo de muestreo [s]
 TS = SAMPLE_TIME_SEC / 3600     # Periodo de muestreo [h]
 
 # ── Modelo de planta (FOPDT discreto) ────────────────────
-K     = 0.6086      # Ganancia estática      [psi/%]
-TAU   = 0.0995      # Constante de tiempo    [h]
-THETA = 0.0200      # Tiempo muerto          [h]
+# K     = 0.6086      # Ganancia estática      [psi/%]
+# TAU   = 0.0995      # Constante de tiempo    [h]
+# THETA = 0.0200      # Tiempo muerto          [h]
 # Retraso discreto: d = round(THETA / TS) = 7 muestras
 # (calculado automáticamente en SimulatedPlantInterface)
+K     = 0.5919      # Ganancia estática      [psi/%]
+TAU   = 0.0768      # Constante de tiempo    [h]
+THETA = 0.0200      # Tiempo muerto          [h]
 
 # ── Sintonización PID (criterio IAE – seguimiento de SP) ─
-KC = 4.9574         # Ganancia proporcional  [%/psi]
-TI = 0.0581         # Tiempo integral        [h]
-TD = 0.0073         # Tiempo derivativo      [h]
+# KC = 4.9574         # Ganancia proporcional  [%/psi]
+# TI = 0.0581         # Tiempo integral        [h]
+# TD = 0.0073         # Tiempo derivativo      [h]
+
+KC = 4.0786         # Ganancia proporcional  [%/psi]
+TI = 0.0488         # Tiempo integral        [h]
+TD = 0.0072         # Tiempo derivativo      [h]
 
 # ── Restricciones del actuador ────────────────────────────
 OP_MIN       = 0.0      # Cierre total      [%]
